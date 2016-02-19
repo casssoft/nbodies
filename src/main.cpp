@@ -256,21 +256,35 @@ void stepParticles()
 {
 
   for (unsigned int i = 0; i < particles.size(); ++i) {
+    // Not actually acceleration
+    // This is the acceleration accumulator
     particles[i]->setAcceleration(Vector3d::Zero());
   }
   
   for (unsigned int i = 0; i < particles.size(); ++i) {
     for (unsigned int j = i + 1; j < particles.size(); ++j) {
+      // r_i_j is the distance vector
       Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
+      // bottom is scaling factor we divide by, we don't need to separate it out
       double bottom = r_i_j.squaredNorm() + e2;
       bottom = sqrt(bottom * bottom * bottom);
       Vector3d f_i_j = r_i_j/ bottom;
+
+      // distvector = j pos - i pos
+      // particles[i].acceleration accumlator = (m of j/ (dist^2 + e2)) * distvector
+
+      // so f_i_j is the shared part of the calculation between the pair
+      // which = distvector/(dist^2 + e2) but I multiply f_i_j by negative 1 to
+      // reverse the direction so that it works for particle i too
+
+      // Notice we are just adding to the accelerator
       particles[i]->setAcceleration(particles[j]->getMass() * f_i_j + particles[i]->getAcceleration());
       particles[j]->setAcceleration(particles[i]->getMass() * -1 * f_i_j + particles[j]->getAcceleration());
     }
   }
   for (unsigned int i = 0; i < particles.size(); ++i) {
     // Integrate with Symplectic euler.
+    // Important to update velocity and use updated velocity to update position
     particles[i]->setVelocity(particles[i]->getVelocity() + h * particles[i]->getAcceleration());
     particles[i]->setPosition(particles[i]->getPosition() + h * particles[i]->getVelocity());
   }
