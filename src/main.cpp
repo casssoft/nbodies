@@ -302,7 +302,9 @@ int main(int argc, char **argv)
 	// Create the particles...
 	if(argc == 2) {
 		// ... without input file
-		createParticles();
+		//createParticles();
+    cout << "Please specify input file" << endl;
+    exit(1);
 	} else {
 		// ... with input file
 		loadParticles(argv[2]);
