@@ -9,7 +9,6 @@
 #include "Texture.h"
 
 using namespace std;
-using namespace Eigen;
 
 //
 // Utility functions for random numbers
@@ -49,29 +48,19 @@ double generateGaussianNoise(double mu, double sigma)
 	return z0 * sigma + mu;
 }
 
-Particle::Particle() :
-	m(1.0),
-	x(0.0, 0.0, 0.0),
-	v(0.0, 0.0, 0.0),
-	radius(1.0f),
-	color(1.0f, 1.0f, 1.0f, 1.0f),
+Particles::Particles() :
+  length(0),
 	posBufID(0),
 	texBufID(0),
 	indBufID(0)
 {
-	// Random values
-	m = 1e-2;
-	x << randRange(-1.0, 1.0), randRange(-1.0, 1.0), randRange(-1.0, 1.0);
-	v << randRange(-1.0, 1.0), randRange(-1.0, 1.0), randRange(-1.0, 1.0);
-	radius = randRange(0.1f, 0.3f);
-	color << randRange(0.5f, 1.0f), randRange(0.5f, 1.0f), randRange(0.5f, 1.0f), 1.0f;
 }
 
-Particle::~Particle()
+Particles::~Particles()
 {
 }
 
-void Particle::init()
+void Particles::init()
 {
 	// Load geometry
 	// 0
@@ -126,7 +115,7 @@ void Particle::init()
 	assert(glGetError() == GL_NO_ERROR);
 }
 
-void Particle::draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> MV) const
+void Particles::draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> MV, unsigned int index) const
 {
 	// Enable and bind position array for drawing
 	GLint h_pos = prog->getAttribute("vertPos");
@@ -145,13 +134,13 @@ void Particle::draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> MV) const
 	
 	// Transformation matrix
 	MV->pushMatrix();
-	MV->translate(Vector3f(x(0), x(1), x(2)));
+	MV->translate(Eigen::Vector3f(position[index * 3], position[index * 3 + 1], position[index * 3 + 2]));
 	glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, MV->topMatrix().data());
 	MV->popMatrix();
 	
 	// Color and scale
-	glUniform4fv(prog->getUniform("color"), 1, color.data());
-	glUniform1f(prog->getUniform("radius"), radius);
+	glUniform4fv(prog->getUniform("color"), 1, &(color[index * 4]));
+	glUniform1f(prog->getUniform("radius"), radius[index]);
 	
 	// Draw
 	glDrawElements(GL_TRIANGLE_STRIP, (int)indBuf.size(), GL_UNSIGNED_INT, 0);

@@ -25,7 +25,7 @@ string RESOURCE_DIR = ""; // Where the resources are loaded from
 shared_ptr<Program> progSimple;
 shared_ptr<Program> prog;
 shared_ptr<Camera> camera;
-vector< shared_ptr<Particle> > particles;
+Particles particles;
 shared_ptr<Texture> texture;
 double t, h, e2;
 
@@ -108,12 +108,7 @@ static void initGL()
 	camera = make_shared<Camera>();
 	
 	// Initialize OpenGL for particles.
-  for (unsigned int i = 0; i < particles.size(); ++i) {
-    particles[i]->init();
-  }
-	//for(auto p : particles) {
-	//	p->init();
-	//}
+  particles.init();
 	
 	// If there were any OpenGL errors, this will print something.
 	// You can intersperse this line in your code to find the exact location
@@ -127,23 +122,29 @@ public:
 	bool operator()(size_t i0, size_t i1) const
 	{
 		// Particle positions in world space
-		const Vector3d &x0 = particles[i0]->getPosition();
-		const Vector3d &x1 = particles[i1]->getPosition();
+		//const Vector3d &x0 = particles[i0]->getPosition();
+    double x0_x = particles.position[i0 * 3];
+    double x0_y = particles.position[i0 * 3 + 1];
+    double x0_z = particles.position[i0 * 3 + 2];
+    double x1_x = particles.position[i1 * 3];
+    double x1_y = particles.position[i1 * 3 + 1];
+    double x1_z = particles.position[i1 * 3 + 2];
 		// Particle positions in camera space
-		float z0 = V.row(2) * Vector4f(x0(0), x0(1), x0(2), 1.0f);
-		float z1 = V.row(2) * Vector4f(x1(0), x1(1), x1(2), 1.0f);
+		float z0 = V.row(2) * Vector4f(x0_x, x0_y, x0_z, 1.0f);
+		float z1 = V.row(2) * Vector4f(x1_x, x1_y, x1_z, 1.0f);
 		return z0 < z1;
 	}
 	
 	Matrix4f V; // current view matrix
 };
+
 ParticleSorter sorter;
 
 // http://stackoverflow.com/questions/1577475/c-sorting-and-keeping-track-of-indexes
 template <typename T>
-vector<size_t> sortIndices(const vector<T> &v) {
+vector<size_t> sortIndices(const T &v) {
 	// initialize original index locations
-	vector<size_t> idx(v.size());
+	vector<size_t> idx(v.length);
 	for (size_t i = 0; i != idx.size(); ++i) idx[i] = i;
 	// sort indexes based on comparing values in v
 	sort(idx.begin(), idx.end(), sorter);
@@ -195,7 +196,7 @@ void renderGL()
 	
   auto indices = sortIndices(particles);
   for (unsigned int i = 0; i < indices.size(); ++i) {
-    particles[indices[i]]->draw(prog, MV);
+    particles.draw(prog, MV, indices[i]);
   }
   //for(auto i : sortIndices(particles)) {
 	//	particles[i]->draw(prog, MV);
@@ -226,26 +227,37 @@ void loadParticles(const char *filename)
 
 	// 1st line:
 	// <n> <h> <e2>
-	int n;
+	unsigned int n;
 	in >> n;
 	in >> h;
 	in >> e2;
 
   for (unsigned int i = 0; i < n; ++i) {
-    auto part = make_shared<Particle>();
     double mass;
     double px, py, pz;
     double vx, vy, vz;
     float cr, cg, cb;
     float r;
     in >> mass >> px >> py >> pz >> vx >> vy >> vz >> cr >> cg >> cb >> r;
-    part->setMass(mass);
-    part->setPosition(Vector3d(px, py, pz));
-    part->setVelocity(Vector3d(vx, vy, vz));
-    part->setColor(Vector3f(cr, cg, cb));
-    part->setRadius(r);
-    particles.push_back(part);
+    particles.mass.push_back(mass);
+    particles.position.push_back(px);
+    particles.position.push_back(py);
+    particles.position.push_back(pz);
+    particles.velocity.push_back(vx);
+    particles.velocity.push_back(vy);
+    particles.velocity.push_back(vz);
+    particles.acceleration.push_back(0);
+    particles.acceleration.push_back(0);
+    particles.acceleration.push_back(0);
+
+    particles.color.push_back(cr);
+    particles.color.push_back(cg);
+    particles.color.push_back(cb);
+    particles.color.push_back(1.0f);
+
+    particles.radius.push_back(r);
   }
+  particles.length = n;
 
 	in.close();
 	cout << "Loaded galaxy from " << filename << endl;
@@ -255,20 +267,34 @@ void loadParticles(const char *filename)
 void stepParticles()
 {
 
-  for (unsigned int i = 0; i < particles.size(); ++i) {
-    // Not actually acceleration
-    // This is the acceleration accumulator
-    particles[i]->setAcceleration(Vector3d::Zero());
-  }
+  //for (unsigned int i = 0; i < particles.length; ++i) {
+  //  // Not actually acceleration
+  //  // This is the acceleration accumulator
+  //  //particles[i]->setAcceleration(Vector3d::Zero());
+  //  particles.acceleration[i*3] = 0;
+  //  particles.acceleration[i*3 + 1] = 0;
+  //  particles.acceleration[i*3 + 2] = 0;
+  //}
   
-  for (unsigned int i = 0; i < particles.size(); ++i) {
-    for (unsigned int j = i + 1; j < particles.size(); ++j) {
+  for (unsigned int i = 0; i < particles.length; ++i) {
+    for (unsigned int j = i + 1; j < particles.length; ++j) {
       // r_i_j is the distance vector
-      Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
+      //Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
+      double r_i_j_x = particles.position[j * 3] - particles.position[i * 3];
+      double r_i_j_y = particles.position[j * 3 + 1] - particles.position[i * 3 + 1];
+      double r_i_j_z = particles.position[j * 3 + 2] - particles.position[i * 3 + 2];
+      
       // bottom is scaling factor we divide by, we don't need to separate it out
-      double bottom = r_i_j.squaredNorm() + e2;
-      bottom = sqrt(bottom * bottom * bottom);
-      Vector3d f_i_j = r_i_j/ bottom;
+      //double bottom = r_i_j.squaredNorm() + e2;
+      double bottom = r_i_j_x * r_i_j_x + r_i_j_y * r_i_j_y + r_i_j_z * r_i_j_z + e2;
+      
+      bottom = sqrt(bottom * bottom * bottom); // bottom ^(3/2)
+      
+      //Vector3d f_i_j = r_i_j/ bottom;
+      // Resuse r_i_j as f_i_j cause fuck it's verbose otherwise
+      r_i_j_x /= bottom;
+      r_i_j_y /= bottom;
+      r_i_j_z /= bottom;
 
       // distvector = j pos - i pos
       // particles[i].acceleration accumlator = (m of j/ (dist^2 + e2)) * distvector
@@ -278,15 +304,34 @@ void stepParticles()
       // reverse the direction so that it works for particle i too
 
       // Notice we are just adding to the accelerator
-      particles[i]->setAcceleration(particles[j]->getMass() * f_i_j + particles[i]->getAcceleration());
-      particles[j]->setAcceleration(particles[i]->getMass() * -1 * f_i_j + particles[j]->getAcceleration());
+      //particles[i]->setAcceleration(particles[j]->getMass() * f_i_j + particles[i]->getAcceleration());
+      //particles[j]->setAcceleration(particles[i]->getMass() * -1 * f_i_j + particles[j]->getAcceleration());
+      particles.acceleration[i * 3] += particles.mass[j] * r_i_j_x;
+      particles.acceleration[i * 3 + 1] += particles.mass[j] * r_i_j_y;
+      particles.acceleration[i * 3 + 2] += particles.mass[j] * r_i_j_z; 
+      
+      particles.acceleration[j * 3] -= particles.mass[i] * r_i_j_x;
+      particles.acceleration[j * 3 + 1] -= particles.mass[i] * r_i_j_y; 
+      particles.acceleration[j * 3 + 2] -= particles.mass[i] * r_i_j_z; 
     }
   }
-  for (unsigned int i = 0; i < particles.size(); ++i) {
+  for (unsigned int i = 0; i < particles.length; ++i) {
     // Integrate with Symplectic euler.
     // Important to update velocity and use updated velocity to update position
-    particles[i]->setVelocity(particles[i]->getVelocity() + h * particles[i]->getAcceleration());
-    particles[i]->setPosition(particles[i]->getPosition() + h * particles[i]->getVelocity());
+    //particles[i]->setVelocity(particles[i]->getVelocity() + h * particles[i]->getAcceleration());
+    //particles[i]->setPosition(particles[i]->getPosition() + h * particles[i]->getVelocity());
+    particles.velocity[i * 3] += h * particles.acceleration[i * 3];
+    particles.velocity[i * 3 + 1] += h * particles.acceleration[i * 3 + 1];
+    particles.velocity[i * 3 + 2] += h * particles.acceleration[i * 3 + 2];
+
+    // Zero out acceleration now instead because of access patterns? 
+    particles.acceleration[i * 3] = 0;
+    particles.acceleration[i * 3 + 1] = 0;
+    particles.acceleration[i * 3 + 2] = 0;
+
+    particles.position[i * 3] += h * particles.velocity[i * 3];
+    particles.position[i * 3 + 1] += h * particles.velocity[i * 3 + 1];
+    particles.position[i * 3 + 2] += h * particles.velocity[i * 3 + 2];
   }
   t += h;
 }
@@ -376,8 +421,12 @@ int main(int argc, char **argv)
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}
-  cout << "Particle heavy: \n" << particles[0]->getPosition() << endl;
-  cout << "Particle light: \n" << particles[1]->getPosition() << endl;
+  cout << "First particle: \n" << particles.position[0] << "\n" <<
+    particles.position[1] << "\n" <<
+    particles.position[2] << "\n";
+  cout << "Second particle: \n" << particles.position[1] << "\n" <<
+    particles.position[2] << "\n" <<
+    particles.position[3] << "\n";
 	cout << "Elapsed time: " << (t*3.261539827498732e6) << " years" << endl;
 	return 0;
 }
