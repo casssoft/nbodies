@@ -9,8 +9,10 @@
 #include <cmath>
 #include <limits>
 
-#define GLEW_STATIC
-#include <GL/glew.h>
+#include <cstdint>
+
+//#define GLEW_STATIC
+//#include <GL/glew.h>
 
 double randRange(double l, double h);
 double generateGaussianNoise(double mu, double sigma);
@@ -18,6 +20,18 @@ double generateGaussianNoise(double mu, double sigma);
 class MatrixStack;
 class Program;
 class Texture;
+
+template <typename T>
+struct vectors3d {
+  std::vector<T> xs;
+  std::vector<T> ys;
+  std::vector<T> zs;
+};
+
+template <typename T>
+struct vector4d {
+  T x, y, z, w;
+};
 
 class Particles
 {
@@ -32,22 +46,16 @@ public:
   unsigned int length;
   std::vector<double> mass;
   	
-  // 3 * length
-  std::vector<double> position;
+  vectors3d<double> positions;
+  vectors3d<double> velocities;
 
-  // 3 * length
-  std::vector<double> velocity;
-
-  // 3 * length
   // Accumulates acceleration from multiple
   // particles
-  std::vector<double> acceleration;
+  vectors3d<double> accelerations;
 
   // DISPLAY ONLY
-  // 4 * length
-  std::vector<float> color;
+  std::vector<vector4d<float> > color;
 
-  // 1 * length
   std::vector<float> radius;
 
 
@@ -57,9 +65,9 @@ private:
 	std::vector<float> posBuf;
 	std::vector<float> texBuf;
 	std::vector<unsigned int> indBuf;
-	GLuint posBufID;
-	GLuint texBufID;
-	GLuint indBufID;
+	uint_least32_t posBufID;
+	uint_least32_t texBufID;
+	uint_least32_t indBufID;
 };
 
 #endif

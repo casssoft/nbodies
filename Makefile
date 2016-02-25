@@ -12,7 +12,7 @@ NVFLAGS+=-ccbin=clang++ -std=c++11
 LDFLAGS+=-L$(GLFW_DIR)/release/src -lX11 -lglfw3 $(GLFW_LIBRARIES) $(GLEW_DIR)/lib/libGLEW.a -lGL
 INC+=-I$(EIGEN3_INCLUDE_DIR) -I$(GLFW_DIR)/include -I$(GLEW_DIR)/include
 
-REGULAR_STEP=src/StepParticlesSerial.cpp
+REGULAR_STEP=src/StepParticlesSerial.cpp 
 MIC_STEP=src/StepParticlesMic.cpp
 CUDA_STEP=src/StepParticlesCuda.cu
 

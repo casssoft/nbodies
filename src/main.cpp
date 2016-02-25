@@ -125,12 +125,12 @@ public:
 	{
 		// Particle positions in world space
 		//const Vector3d &x0 = particles[i0]->getPosition();
-    double x0_x = particles.position[i0 * 3];
-    double x0_y = particles.position[i0 * 3 + 1];
-    double x0_z = particles.position[i0 * 3 + 2];
-    double x1_x = particles.position[i1 * 3];
-    double x1_y = particles.position[i1 * 3 + 1];
-    double x1_z = particles.position[i1 * 3 + 2];
+    double x0_x = particles.positions.xs[i0];
+    double x0_y = particles.positions.ys[i0];
+    double x0_z = particles.positions.zs[i0];
+    double x1_x = particles.positions.xs[i1];
+    double x1_y = particles.positions.ys[i1];
+    double x1_z = particles.positions.zs[i1];
 		// Particle positions in camera space
 		float z0 = V.row(2) * Vector4f(x0_x, x0_y, x0_z, 1.0f);
 		float z1 = V.row(2) * Vector4f(x1_x, x1_y, x1_z, 1.0f);
@@ -242,20 +242,22 @@ void loadParticles(const char *filename)
     float r;
     in >> mass >> px >> py >> pz >> vx >> vy >> vz >> cr >> cg >> cb >> r;
     particles.mass.push_back(mass);
-    particles.position.push_back(px);
-    particles.position.push_back(py);
-    particles.position.push_back(pz);
-    particles.velocity.push_back(vx);
-    particles.velocity.push_back(vy);
-    particles.velocity.push_back(vz);
-    particles.acceleration.push_back(0);
-    particles.acceleration.push_back(0);
-    particles.acceleration.push_back(0);
+    particles.positions.xs.push_back(px);
+    particles.positions.ys.push_back(py);
+    particles.positions.zs.push_back(pz);
+    particles.velocities.xs.push_back(vx);
+    particles.velocities.ys.push_back(vy);
+    particles.velocities.zs.push_back(vz);
+    particles.accelerations.xs.push_back(0);
+    particles.accelerations.ys.push_back(0);
+    particles.accelerations.zs.push_back(0);
 
-    particles.color.push_back(cr);
-    particles.color.push_back(cg);
-    particles.color.push_back(cb);
-    particles.color.push_back(1.0f);
+    vector4d<float> color;
+    color.x = cr;
+    color.y = cg;
+    color.z = cb;
+    color.w = 1.0f;
+    particles.color.push_back(color);
 
     particles.radius.push_back(r);
   }
@@ -352,12 +354,12 @@ int main(int argc, char **argv)
 		glfwDestroyWindow(window);
 		glfwTerminate();
 	}
-  cout << "First particle: \n" << particles.position[0] << "\n" <<
-    particles.position[1] << "\n" <<
-    particles.position[2] << "\n";
-  cout << "Second particle: \n" << particles.position[1] << "\n" <<
-    particles.position[2] << "\n" <<
-    particles.position[3] << "\n";
+  cout << "First particle: \n" << particles.positions.xs[0] << "\n" <<
+    particles.positions.ys[0] << "\n" <<
+    particles.positions.zs[0] << "\n";
+  cout << "Second particle: \n" << particles.positions.xs[1] << "\n" <<
+    particles.positions.ys[1] << "\n" <<
+    particles.positions.zs[1] << "\n";
 	cout << "Elapsed time: " << (t*3.261539827498732e6) << " years" << endl;
 	return 0;
 }

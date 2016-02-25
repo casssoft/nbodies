@@ -134,12 +134,12 @@ void Particles::draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> MV, unsig
 	
 	// Transformation matrix
 	MV->pushMatrix();
-	MV->translate(Eigen::Vector3f(position[index * 3], position[index * 3 + 1], position[index * 3 + 2]));
+	MV->translate(Eigen::Vector3f(positions.xs[index], positions.ys[index], positions.zs[index]));
 	glUniformMatrix4fv(prog->getUniform("MV"), 1, GL_FALSE, MV->topMatrix().data());
 	MV->popMatrix();
 	
 	// Color and scale
-	glUniform4fv(prog->getUniform("color"), 1, &(color[index * 4]));
+	glUniform4fv(prog->getUniform("color"), 1, &(color[index].w));
 	glUniform1f(prog->getUniform("radius"), radius[index]);
 	
 	// Draw

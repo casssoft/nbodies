@@ -19,9 +19,9 @@ void stepParticles(Particles &particles, double step, double softening) {
     for (unsigned int j = i + 1; j < particles.length; ++j) {
       // r_i_j is the distance vector
       //Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
-      double r_i_j_x = particles.position[j * 3] - particles.position[i * 3];
-      double r_i_j_y = particles.position[j * 3 + 1] - particles.position[i * 3 + 1];
-      double r_i_j_z = particles.position[j * 3 + 2] - particles.position[i * 3 + 2];
+      double r_i_j_x = particles.positions.xs[j] - particles.positions.xs[i];
+      double r_i_j_y = particles.positions.ys[j] - particles.positions.ys[i];
+      double r_i_j_z = particles.positions.zs[j] - particles.positions.zs[i];
 
       // bottom is scaling factor we divide by, we don't need to separate it out
       //double bottom = r_i_j.squaredNorm() + e2;
@@ -45,13 +45,13 @@ void stepParticles(Particles &particles, double step, double softening) {
       // Notice we are just adding to the accelerator
       //particles[i]->setAcceleration(particles[j]->getMass() * f_i_j + particles[i]->getAcceleration());
       //particles[j]->setAcceleration(particles[i]->getMass() * -1 * f_i_j + particles[j]->getAcceleration());
-      particles.acceleration[i * 3] += particles.mass[j] * r_i_j_x;
-      particles.acceleration[i * 3 + 1] += particles.mass[j] * r_i_j_y;
-      particles.acceleration[i * 3 + 2] += particles.mass[j] * r_i_j_z; 
+      particles.accelerations.xs[i] += particles.mass[j] * r_i_j_x;
+      particles.accelerations.ys[i] += particles.mass[j] * r_i_j_y;
+      particles.accelerations.zs[i] += particles.mass[j] * r_i_j_z;
 
-      particles.acceleration[j * 3] -= particles.mass[i] * r_i_j_x;
-      particles.acceleration[j * 3 + 1] -= particles.mass[i] * r_i_j_y; 
-      particles.acceleration[j * 3 + 2] -= particles.mass[i] * r_i_j_z; 
+      particles.accelerations.xs[j] -= particles.mass[i] * r_i_j_x;
+      particles.accelerations.ys[j] -= particles.mass[i] * r_i_j_y;
+      particles.accelerations.zs[j] -= particles.mass[i] * r_i_j_z;
     }
   }
   for (unsigned int i = 0; i < particles.length; ++i) {
@@ -59,18 +59,18 @@ void stepParticles(Particles &particles, double step, double softening) {
     // Important to update velocity and use updated velocity to update position
     //particles[i]->setVelocity(particles[i]->getVelocity() + h * particles[i]->getAcceleration());
     //particles[i]->setPosition(particles[i]->getPosition() + h * particles[i]->getVelocity());
-    particles.velocity[i * 3] += step * particles.acceleration[i * 3];
-    particles.velocity[i * 3 + 1] += step * particles.acceleration[i * 3 + 1];
-    particles.velocity[i * 3 + 2] += step * particles.acceleration[i * 3 + 2];
+    particles.velocities.xs[i] += step * particles.accelerations.xs[i];
+    particles.velocities.ys[i] += step * particles.accelerations.ys[i];
+    particles.velocities.zs[i] += step * particles.accelerations.zs[i];
 
     // Zero out acceleration now instead because of access patterns? 
-    particles.acceleration[i * 3] = 0;
-    particles.acceleration[i * 3 + 1] = 0;
-    particles.acceleration[i * 3 + 2] = 0;
+    particles.accelerations.xs[i] = 0;
+    particles.accelerations.ys[i] = 0;
+    particles.accelerations.zs[i] = 0;
 
-    particles.position[i * 3] += step * particles.velocity[i * 3];
-    particles.position[i * 3 + 1] += step * particles.velocity[i * 3 + 1];
-    particles.position[i * 3 + 2] += step * particles.velocity[i * 3 + 2];
+    particles.positions.xs[i] += step * particles.velocities.xs[i];
+    particles.positions.ys[i] += step * particles.velocities.ys[i];
+    particles.positions.zs[i] += step * particles.velocities.zs[i];
   }
 
 }
