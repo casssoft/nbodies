@@ -1,1 +1,7 @@
 build
+*.o
+lab09-serial
+lab09-cuda
+lab09-mic
+Lab09
+*.swp
