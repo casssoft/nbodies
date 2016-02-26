@@ -3,6 +3,7 @@
 
 #include "Particle.h"
 
+void init(Particles &particles) {}
 
 void stepParticles(Particles &particles, double step, double softening) {
 

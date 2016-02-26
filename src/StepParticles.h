@@ -4,6 +4,7 @@
 #include <vector>
 #include "Particle.h"
 
+void init(Particles&);
 void stepParticles(Particles&, double, double);
 
 #endif

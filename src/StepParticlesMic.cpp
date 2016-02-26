@@ -1,5 +1,9 @@
 #include "Particle.h"
 
+void init(Particles &particles) {
+  //TODO: copy over arrays, only write back arrays in loop
+}
+
 __attribute__((target(mic)))
 void stepFunctionMic(
     double *xPos, double *yPos, double *zPos, 
@@ -7,10 +11,13 @@ void stepFunctionMic(
     double *xAcc, double *yAcc, double *zAcc,
     double *masses,
     unsigned int length, double step, double softening
-) {
+    ) {
 
+#pragma omp parallel for shared(xAcc, yAcc, zAcc, xPos, yPos, zPos)
   for (unsigned int i = 0; i < length; ++i) {
-    for (unsigned int j = i + 1; j < length; ++j) {
+    for (unsigned int j = 0; j < length; ++j) {
+      if (j == i) { continue; }
+
       // r_i_j is the distance vector
       //Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
       double r_i_j_x = xPos[j] - xPos[i];
@@ -41,17 +48,13 @@ void stepFunctionMic(
       xAcc[i] += masses[j] * r_i_j_x;
       yAcc[i] += masses[j] * r_i_j_y;
       zAcc[i] += masses[j] * r_i_j_z;
-
-      xAcc[j] -= masses[i] * r_i_j_x;
-      yAcc[j] -= masses[i] * r_i_j_y;
-      zAcc[j] -= masses[i] * r_i_j_z;
     }
   }
+
+#pragma omp parallel for
   for (unsigned int i = 0; i < length; ++i) {
     // Integrate with Symplectic euler.
     // Important to update velocity and use updated velocity to update position
-    //particles[i]->setVelocity(particles[i]->getVelocity() + h * particles[i]->getAcceleration());
-    //particles[i]->setPosition(particles[i]->getPosition() + h * particles[i]->getVelocity());
     xVel[i] += step * xAcc[i];
     yVel[i] += step * yAcc[i];
     zVel[i] += step * zAcc[i];
@@ -72,7 +75,7 @@ void stepFunctionMic(
 void stepParticles(Particles &particles, double step, double softening) {
   double *xPos, *yPos, *zPos, *xVel, *yVel, *zVel, *xAcc, *yAcc, *zAcc, *masses;
   unsigned int length;
-  
+
   xPos = &particles.positions.xs[0];
   yPos = &particles.positions.ys[0];
   zPos = &particles.positions.zs[0];
@@ -90,12 +93,12 @@ void stepParticles(Particles &particles, double step, double softening) {
   length = particles.length;
 
 
-#pragma offload target(mic) \
- inout(xPos : length(length)) inout(yPos : length(length)) inout(zPos : length(length))\
- inout(xVel : length(length)) inout(yVel : length(length)) inout(zVel : length(length))\
- inout(xAcc : length(length)) inout(yAcc : length(length)) inout(zAcc : length(length))\
- in(length, step, softening) in(masses : length(length))
+  #pragma offload target(mic) \
+  inout(xPos : length(length)) inout(yPos : length(length)) inout(zPos : length(length))\
+    inout(xVel : length(length)) inout(yVel : length(length)) inout(zVel : length(length))\
+    inout(xAcc : length(length)) inout(yAcc : length(length)) inout(zAcc : length(length))\
+    in(length, step, softening) in(masses : length(length))
     stepFunctionMic(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, masses,
         length, step, softening);
- 
+
 }

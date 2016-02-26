@@ -6,7 +6,7 @@ GLFW_LIBRARIES=/usr/lib64/librt.so /usr/lib64/libm.so /usr/lib64/libX11.so -lpth
  /usr/lib64/libXxf86vm.so /usr/lib64/libXcursor.so /usr/lib64/libGL.so
 
 CXX=$(ICPC)
-CXXFLAGS+=-Wall -pedantic -std=c++0x $(INC) -g
+CXXFLAGS+=-O3 -Wall -pedantic -std=c++0x $(INC) -g
 ICFLAGS+=
 NVFLAGS+=-ccbin=clang++ -std=c++11
 LDFLAGS+=-L$(GLFW_DIR)/release/src -lX11 -lglfw3 $(GLFW_LIBRARIES) $(GLEW_DIR)/lib/libGLEW.a -lGL
@@ -27,13 +27,13 @@ lab09-serial: $(BASE_OBJS) $(REGULAR_STEP:.cpp=.o)
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
 
 lab09-mic: $(BASE_OBJS) $(MIC_STEP:.cpp=.o)
-	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -openmp -o $@ 
 
 lab09-cuda: $(BASE_OBJS) $(CUDA_STEP:.cu=.o)
 	$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -lcuda -lcudart -o $@
 
 $(MIC_STEP:.cpp=.o): $(MIC_STEP) src/Particle.h
-	$(ICPC) $(CXXFLAGS) $(ICFLAGS) -c $< -o $@
+	$(ICPC) $(CXXFLAGS) $(ICFLAGS) -c $< -openmp -o $@
 
 $(CUDA_STEP:.cu=.o): $(CUDA_STEP) src/Particle.h
 	$(NVCC) $(filter-out -std=c++0x -Wall -pedantic, $(CXXFLAGS)) $(NVFLAGS) -c $< -o $@
