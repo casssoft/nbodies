@@ -263,6 +263,8 @@ void loadParticles(const char *filename)
   }
   particles.length = n;
 
+  init(particles, h, e2);
+
 	in.close();
 	cout << "Loaded galaxy from " << filename << endl;
 }

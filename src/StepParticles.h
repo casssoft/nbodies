@@ -4,7 +4,7 @@
 #include <vector>
 #include "Particle.h"
 
-void init(Particles&);
+void init(Particles&, double step, double softening);
 void stepParticles(Particles&, double, double);
 
 #endif
