@@ -12,45 +12,6 @@
 static int signal;
 static int *signalTag = &signal;
 
-inline void calculateAcceleration(
-    double *xPos, double *yPos, double *zPos,
-    double *xAcc, double *yAcc, double *zAcc,
-    double *masses, unsigned int length, double softening,
-    unsigned int i, unsigned int j) {
-
-  // r_i_j is the distance vector
-  //Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
-  double r_i_j_x = xPos[j] - xPos[i];
-  double r_i_j_y = yPos[j] - yPos[i];
-  double r_i_j_z = zPos[j] - zPos[i];
-
-  // bottom is scaling factor we divide by, we don't need to separate it out
-  double bottom = r_i_j_x * r_i_j_x + r_i_j_y * r_i_j_y + r_i_j_z * r_i_j_z + softening;
-
-  bottom = sqrt(bottom * bottom * bottom); // bottom ^(3/2) TODO: MKL
-
-  //Vector3d f_i_j = r_i_j/ bottom;
-  // Resuse r_i_j as f_i_j cause fuck it's verbose otherwise
-  r_i_j_x /= bottom;
-  r_i_j_y /= bottom;
-  r_i_j_z /= bottom;
-
-  // distvector = j pos - i pos
-  // particles[i].acceleration accumlator = (m of j/ (dist^2 + e2)) * distvector
-
-  // so f_i_j is the shared part of the calculation between the pair
-  // which = distvector/(dist^2 + e2) but I multiply f_i_j by negative 1 to
-  // reverse the direction so that it works for particle i too
-
-  // Notice we are just adding to the accelerator
-  //particles[i]->setAcceleration(particles[j]->getMass() * f_i_j + particles[i]->getAcceleration());
-  //particles[j]->setAcceleration(particles[i]->getMass() * -1 * f_i_j + particles[j]->getAcceleration());
-  xAcc[i] += masses[j] * r_i_j_x;
-  yAcc[i] += masses[j] * r_i_j_y;
-  zAcc[i] += masses[j] * r_i_j_z;
-
-}
-
 __attribute__((target(mic)))
   void stepFunctionMic(
       double *xPos, double *yPos, double *zPos, 
@@ -174,7 +135,7 @@ __attribute__((target(mic)))
     }
 #endif
 
-#pragma omp parallel for
+#pragma omp parallel for shared(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc)
     for (unsigned int i = 0; i < length; ++i) {
       // Integrate with Symplectic euler.
       // Important to update velocity and use updated velocity to update position
@@ -261,7 +222,7 @@ void stepParticles(Particles &particles, double step, double softening) {
   stepFunctionMic(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, masses,
       length, step, softening);
 #endif
-#if 1
+#if 0
 #pragma offload target(mic : 0)\
   in(xVel, yVel, zVel, xAcc, yAcc, zAcc, masses : length(0) REUSE)\
   in(length, step, softening)\
@@ -295,6 +256,18 @@ void stepParticles(Particles &particles, double step, double softening) {
 
 #if 0
   std::cerr << "Ending function with 1st particle: " << xPos[1] << ", " << yPos[1] << ", " << zPos[1] << std::endl;
+#endif
+#if 1
+#pragma offload_transfer target(mic:0)\
+  out(xPos, yPos, zPos : length(length) REUSE) wait(signalTag)
+
+#pragma offload target(mic:0)\
+  in(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, masses : length(0) REUSE)\
+  in(length, step, softening)\
+  signal(signalTag)
+  stepFunctionMic(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, masses,
+      length, step, softening);
+
 #endif
 }
 
@@ -352,9 +325,17 @@ void init(Particles &particles, double step, double softening) {
   in(step : ALLOC into(stepD))\
   in(softening : ALLOC into(softeningD))
 #endif
-#if 1
+#if 0
 #pragma offload_transfer target(mic:0)\
   in(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, masses : length(length) ALLOC)
+#endif
+#if 1
+#pragma offload target(mic:0)\
+  in(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, masses : length(length) ALLOC)\
+  in(length, step, softening)\
+  signal(signalTag)
+  stepFunctionMic(xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, 
+      masses, length, step, softening);
 #endif
 #if 0
 #pragma offload target(mic:0)\
