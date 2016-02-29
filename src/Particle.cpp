@@ -139,7 +139,7 @@ void Particles::draw(shared_ptr<Program> prog, shared_ptr<MatrixStack> MV, unsig
 	MV->popMatrix();
 	
 	// Color and scale
-	glUniform4fv(prog->getUniform("color"), 1, &(color[index].w));
+	glUniform4fv(prog->getUniform("color"), 1, &(color[index].x));
 	glUniform1f(prog->getUniform("radius"), radius[index]);
 	
 	// Draw
