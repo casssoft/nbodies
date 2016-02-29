@@ -17,42 +17,51 @@ void stepParticles(Particles &particles, double step, double softening) {
   //}
 
   for (unsigned int i = 0; i < particles.length; ++i) {
+    double xDiff[particles.length];
+    double yDiff[particles.length];
+    double zDiff[particles.length];
     for (unsigned int j = i + 1; j < particles.length; ++j) {
-      // r_i_j is the distance vector
-      //Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
-      double r_i_j_x = particles.positions.xs[j] - particles.positions.xs[i];
-      double r_i_j_y = particles.positions.ys[j] - particles.positions.ys[i];
-      double r_i_j_z = particles.positions.zs[j] - particles.positions.zs[i];
+      xDiff[j] = particles.positions.xs[j] - particles.positions.xs[i];
+      yDiff[j] = particles.positions.ys[j] - particles.positions.ys[i];
+      zDiff[j] = particles.positions.zs[j] - particles.positions.zs[i];
+    }
+    // r_i_j is the distance vector
+    //Vector3d r_i_j = particles[j]->getPosition() - particles[i]->getPosition();
+    //      double r_i_j_x = particles.positions.xs[j] - particles.positions.xs[i];
+    //      double r_i_j_y = particles.positions.ys[j] - particles.positions.ys[i];
+    //      double r_i_j_z = particles.positions.zs[j] - particles.positions.zs[i];
+
+    for (unsigned int j = i + 1; j < particles.length; ++j) {
 
       // bottom is scaling factor we divide by, we don't need to separate it out
       //double bottom = r_i_j.squaredNorm() + e2;
-      double bottom = r_i_j_x * r_i_j_x + r_i_j_y * r_i_j_y + r_i_j_z * r_i_j_z + softening;
+      double bottom = xDiff[j] * xDiff[j] + yDiff[j] * yDiff[j] + zDiff[j] * zDiff[j] + softening;
+      bottom = sqrt(bottom * bottom * bottom);
+      xDiff[j] /= bottom;
+      yDiff[j] /= bottom;
+      zDiff[j] /= bottom;
+    }
 
-      bottom = sqrt(bottom * bottom * bottom); // bottom ^(3/2)
+    // distvector = j pos - i pos
+    // particles[i].acceleration accumlator = (m of j/ (dist^2 + e2)) * distvector
 
-      //Vector3d f_i_j = r_i_j/ bottom;
-      // Resuse r_i_j as f_i_j cause fuck it's verbose otherwise
-      r_i_j_x /= bottom;
-      r_i_j_y /= bottom;
-      r_i_j_z /= bottom;
+    // so f_i_j is the shared part of the calculation between the pair
+    // which = distvector/(dist^2 + e2) but I multiply f_i_j by negative 1 to
+    // reverse the direction so that it works for particle i too
 
-      // distvector = j pos - i pos
-      // particles[i].acceleration accumlator = (m of j/ (dist^2 + e2)) * distvector
+    // Notice we are just adding to the accelerator
+    //particles[i]->setAcceleration(particles[j]->getMass() * f_i_j + particles[i]->getAcceleration());
+    //particles[j]->setAcceleration(particles[i]->getMass() * -1 * f_i_j + particles[j]->getAcceleration());
+    for (unsigned int j = i + 1; j < particles.length; ++j) {
+      particles.accelerations.xs[i] += particles.mass[j] * xDiff[j];
+      particles.accelerations.ys[i] += particles.mass[j] * yDiff[j];
+      particles.accelerations.zs[i] += particles.mass[j] * zDiff[j];
+    }
 
-      // so f_i_j is the shared part of the calculation between the pair
-      // which = distvector/(dist^2 + e2) but I multiply f_i_j by negative 1 to
-      // reverse the direction so that it works for particle i too
-
-      // Notice we are just adding to the accelerator
-      //particles[i]->setAcceleration(particles[j]->getMass() * f_i_j + particles[i]->getAcceleration());
-      //particles[j]->setAcceleration(particles[i]->getMass() * -1 * f_i_j + particles[j]->getAcceleration());
-      particles.accelerations.xs[i] += particles.mass[j] * r_i_j_x;
-      particles.accelerations.ys[i] += particles.mass[j] * r_i_j_y;
-      particles.accelerations.zs[i] += particles.mass[j] * r_i_j_z;
-
-      particles.accelerations.xs[j] -= particles.mass[i] * r_i_j_x;
-      particles.accelerations.ys[j] -= particles.mass[i] * r_i_j_y;
-      particles.accelerations.zs[j] -= particles.mass[i] * r_i_j_z;
+    for (unsigned int j = i + 1; j < particles.length; ++j) {
+      particles.accelerations.xs[j] -= particles.mass[i] * xDiff[j];
+      particles.accelerations.ys[j] -= particles.mass[i] * yDiff[j];
+      particles.accelerations.zs[j] -= particles.mass[i] * zDiff[j];
     }
   }
   for (unsigned int i = 0; i < particles.length; ++i) {
