@@ -6,7 +6,7 @@ GLFW_LIBRARIES=/usr/lib64/librt.so /usr/lib64/libm.so /usr/lib64/libX11.so -lpth
  /usr/lib64/libXxf86vm.so /usr/lib64/libXcursor.so /usr/lib64/libGL.so
 
 CXX=$(ICPC)
-CXXFLAGS+=-O3 -Wall -pedantic -std=c++0x $(INC) -g
+CXXFLAGS+=-O2 -Wall -pedantic -std=c++0x $(INC) -g
 ICFLAGS+=
 NVFLAGS+=-ccbin=clang++ -std=c++11
 LDFLAGS+=-L$(GLFW_DIR)/release/src -lX11 -lglfw3 $(GLFW_LIBRARIES) $(GLEW_DIR)/lib/libGLEW.a -lGL
