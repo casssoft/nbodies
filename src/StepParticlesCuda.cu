@@ -1,5 +1,7 @@
 #include "Particle.h"
 
+#define NTHREADS 1024
+
 static double *xPos, *yPos, *zPos, *xVel, *yVel, *zVel, *xAcc, *yAcc, *zAcc, *masses;
 static unsigned int length;
 
@@ -9,7 +11,7 @@ __global__ void updateValuesKernel(
     double *xAcc, double *yAcc, double *zAcc,
     unsigned int length, double step) {
 
-   unsigned int i = threadIdx.y + blockDim.y * blockIdx.y;
+   unsigned int i = threadIdx.x + blockDim.x * blockIdx.x;
 
    if (i >= length) {
      return;
@@ -32,12 +34,11 @@ __global__ void updateValuesKernel(
 
 __global__ void stepParticlesKernel(
     double *xPos, double *yPos, double *zPos,
-    double *xVel, double *yVel, double *zVel,
     double *xAcc, double *yAcc, double *zAcc,
     double *masses,
-    unsigned int length, double step, double softening) {
+    unsigned int length, double softening) {
 
-   unsigned int i = threadIdx.y + blockDim.y * blockIdx.y;
+   unsigned int i = threadIdx.x + blockDim.x * blockIdx.x;
 
    if (i >= length) {
       return;
@@ -81,10 +82,10 @@ __global__ void stepParticlesKernel(
 }
 
 void stepParticles(Particles &particles, double step, double softening) {
-   dim3 dimBlock(1, 1024);
-   dim3 dimGrid(1, length / 1024 + 1);
+   dim3 dimBlock(NTHREADS, 1);
+   dim3 dimGrid(length / NTHREADS + 1, 1);
    stepParticlesKernel<<<dimGrid, dimBlock>>>(
-    xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, masses, length, step, softening);
+    xPos, yPos, zPos, xAcc, yAcc, zAcc, masses, length, softening);
    updateValuesKernel<<<dimGrid, dimBlock>>>(
     xPos, yPos, zPos, xVel, yVel, zVel, xAcc, yAcc, zAcc, length, step);
 
