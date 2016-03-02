@@ -355,6 +355,7 @@ int main(int argc, char **argv)
 		// Quit program.
 		glfwDestroyWindow(window);
 		glfwTerminate();
+    cout << "Rendered " << static_cast<int>(t / h) << " frames" << endl;
 	}
   cout << "First particle: \n" << particles.positions.xs[0] << "\n" <<
     particles.positions.ys[0] << "\n" <<
