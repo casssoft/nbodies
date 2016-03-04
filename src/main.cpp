@@ -340,6 +340,7 @@ int main(int argc, char **argv)
 		glfwSetMouseButtonCallback(window, mouse_button_callback);
 		// Initialize scene.
 		initGL();
+    glfwSetTime(0.0f);
 		// Loop until the user closes the window.
 		while(!glfwWindowShouldClose(window)) {
 			// Step simulation.
@@ -352,10 +353,13 @@ int main(int argc, char **argv)
 			// Poll for and process events.
 			glfwPollEvents();
 		}
+    float runtime = glfwGetTime();
+    int frames = t / h;
 		// Quit program.
 		glfwDestroyWindow(window);
 		glfwTerminate();
-    cout << "Rendered " << static_cast<int>(t / h) << " frames" << endl;
+    cout << "Rendered " << frames << " frames" << endl;
+    cout << "FPS: " << frames / runtime << endl;
 	}
   cout << "First particle: \n" << particles.positions.xs[0] << "\n" <<
     particles.positions.ys[0] << "\n" <<
